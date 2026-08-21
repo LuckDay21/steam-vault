@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎮 Steam Vault
 
-## Getting Started
+> **Multi-Account Steam Library & Credential Manager** — Kelola seluruh koleksi game dari banyak akun Steam dalam satu antarmuka otentik bergaya **Steam Client & Steam Deck**.
 
-First, run the development server:
+---
 
+## 📌 Masalah & Solusi
+
+Bagi gamer yang memiliki lebih dari satu akun Steam (misal: akun utama, akun smurf kompetitif, atau akun khusus region tertentu), sering kali timbul masalah:
+1. **Penyebaran Game**: Sulit mengingat di akun mana game tertentu berada.
+2. **Game Duplikasi (*Overlap*)**: Beberapa akun memiliki game yang sama.
+3. **Repot Ganti Akun**: Harus mengingat atau mencari kredensial login setiap ingin berganti akun.
+
+**Steam Vault** menyatukan seluruh katalog game Anda ke dalam satu dashboard interaktif, menampilkan akun pemilik per game, menyediakan aksi **1-Click Copy Username & Password**, serta tombol **Direct Launch** ke aplikasi Steam lokal.
+
+---
+
+## ✨ Fitur Utama
+
+- **🎮 Dual View Interface**:
+  - **Steam Desktop Client Mode** (Default): Sidebar navigasi vertikal di kiri + Hero Stage sinematik widescreen di kanan.
+  - **Steam Deck Grid Mode**: Tampilan katalog poster kapsul 2:3 high-density dengan drawer detail samping.
+- **🔐 1-Click Credential Switching**: Salin Username dan Password dalam 1-klik dengan indikator visual dan opsi sembunyikan/tampilkan password (`👁️`).
+- **⚡ Smart Auto-Cover Art**: Cukup masukkan **Steam AppID** (contoh: `730` untuk CS2, `1091500` untuk Cyberpunk 2077), poster HD vertikal & banner horizontal otomatis ditarik dari CDN resmi Steam.
+- **🔄 Multi-Account Overlap Filter**: Filter khusus untuk mendeteksi game yang dimiliki di $\ge 2$ akun Steam.
+- **🚀 Direct Steam Launch**: Tombol **Play / Launch** yang langsung membuka game di aplikasi Steam desktop via protokol `steam://rungameid/<appId>`.
+- **☁️ Firebase Realtime Database Integration**: Sinkronisasi data realtime 2-arah yang aman dan otomatis dengan optimistic local cache (tidak ada lag UI).
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + [Lucide Icons](https://lucide.dev/)
+- **Database**: [Firebase Realtime Database](https://firebase.google.com/docs/database)
+- **Testing**: [Playwright](https://playwright.dev/) (End-to-End Testing)
+
+---
+
+## 🚀 Memulai (Getting Started)
+
+### 1. Clone Repository & Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <url-repository-anda>
+cd steam-vault
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Setup Environment Variables
+Salin file `.env.example` menjadi `.env.local`:
+```bash
+cp .env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Isi konfigurasi Firebase pada file `.env.local`:
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_DATABASE_URL=https://your_project-default-rtdb.asia-southeast1.firebasedatabase.app/
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Setup Rules di Firebase Console
+Pastikan pada **Firebase Console** $\rightarrow$ **Realtime Database** $\rightarrow$ tab **Rules**:
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+```
 
-## Learn More
+### 4. Jalankan Development Server
+```bash
+npm run dev
+```
+Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧪 Testing & Build
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Menjalankan End-to-End Tests dengan Playwright
+npx playwright test
 
-## Deploy on Vercel
+# Menjalankan Production Build
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 Lisensi
+Distributed under the MIT License.
