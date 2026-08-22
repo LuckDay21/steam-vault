@@ -16,7 +16,7 @@ export function GameCard({ game, accounts, onClick }: GameCardProps) {
 
   // Match accounts that own this game
   const ownerAccounts = accounts.filter((acc) =>
-    game.accountIds.includes(acc.id)
+    (game.accountIds || []).includes(acc.id)
   );
 
   const posterSrc =

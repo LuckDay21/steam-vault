@@ -89,20 +89,20 @@ export default function Home() {
         // Account filter
         if (
           filters.selectedAccountId &&
-          !game.accountIds.includes(filters.selectedAccountId)
+          !(game.accountIds || []).includes(filters.selectedAccountId)
         ) {
           return false;
         }
 
         // Duplicates filter
-        if (filters.onlyDuplicates && game.accountIds.length < 2) {
+        if (filters.onlyDuplicates && (game.accountIds || []).length < 2) {
           return false;
         }
 
         // Genre filter
         if (
           filters.selectedGenre &&
-          !game.genres.includes(filters.selectedGenre)
+          !(game.genres || []).includes(filters.selectedGenre)
         ) {
           return false;
         }

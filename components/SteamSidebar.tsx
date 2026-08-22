@@ -137,7 +137,7 @@ export function SteamSidebar({
           games.map((game) => {
             const isSelected = selectedGameId === game.id;
             const ownerAccounts = accounts.filter((a) =>
-              game.accountIds.includes(a.id)
+              (game.accountIds || []).includes(a.id)
             );
             const isDuplicate = ownerAccounts.length > 1;
             const thumbUrl =

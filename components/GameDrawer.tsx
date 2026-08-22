@@ -50,7 +50,7 @@ export function GameDrawer({
   if (!game) return null;
 
   const ownerAccounts = accounts.filter((acc) =>
-    game.accountIds.includes(acc.id)
+    (game.accountIds || []).includes(acc.id)
   );
 
   const handleCopy = (text: string, key: string) => {

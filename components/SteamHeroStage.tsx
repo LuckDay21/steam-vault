@@ -80,7 +80,7 @@ export function SteamHeroStage({
   }
 
   const ownerAccounts = accounts.filter((acc) =>
-    game.accountIds.includes(acc.id)
+    (game.accountIds || []).includes(acc.id)
   );
 
   const heroUrl =

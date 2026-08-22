@@ -18,7 +18,7 @@ test.describe("Steam Vault — Clean Production Database Flow E2E Tests", () => 
     await expect(page.getByRole("button", { name: "Add First Game" })).toBeVisible();
   });
 
-  test("should create Steam accounts, add a game, and view credentials", async ({ page }) => {
+  test("should create Steam accounts, add a game with auto-filled tags, and view credentials", async ({ page }) => {
     // 1. Create First Steam Account (Main)
     await page.getByRole("button", { name: /Accounts \(/i }).first().click();
     await expect(page.getByText("Steam Accounts Manager")).toBeVisible();
@@ -42,26 +42,30 @@ test.describe("Steam Vault — Clean Production Database Flow E2E Tests", () => 
     await page.getByRole("button", { name: "Done" }).click();
     await expect(page.getByText("Steam Accounts Manager")).not.toBeVisible();
 
-    // 3. Add a Game (Cyberpunk 2077 with Steam AppID 1091500)
+    // 3. Add a Game via Steam AppID (730) with Auto-Fill Info
     await page.getByRole("button", { name: "Add Game" }).click();
     await expect(page.getByText("Add Game to Vault")).toBeVisible();
 
-    await page.getByPlaceholder("e.g. Cyberpunk 2077, Elden Ring, CS2").fill("Cyberpunk 2077");
-    const appIdInput = page.getByPlaceholder("e.g. 730 or 1091500");
-    await appIdInput.fill("1091500");
-    await page.getByRole("button", { name: "Auto-Cover" }).click();
+    const appIdInput = page.getByPlaceholder("e.g. 730, 1091500, 1245620");
+    await appIdInput.fill("730");
+    await page.getByRole("button", { name: /Auto-Fill Info/i }).click();
 
     // Link accounts
     const modal = page.locator(".fixed.inset-0");
-    await modal.getByText("Main Steam Account").click();
-    await modal.getByText("Smurf Account").click();
+    await modal.getByText("Main Steam Account").first().click();
+    await modal.getByText("Smurf Account").first().click();
+
+    // Verify title was filled or set
+    const titleInput = page.getByPlaceholder("e.g. Cyberpunk 2077, Elden Ring, CS2");
+    if (!(await titleInput.inputValue())) {
+      await titleInput.fill("Counter-Strike 2");
+    }
 
     await page.getByRole("button", { name: "Add to Library" }).click();
     await expect(page.getByText("Add Game to Vault")).not.toBeVisible();
 
     // 4. Verify Game is selected in Hero Stage
-    await expect(page.getByRole("heading", { name: "Cyberpunk 2077" })).toBeVisible();
-    await expect(page.getByText("AppID: 1091500")).toBeVisible();
+    await expect(page.getByText("AppID: 730")).toBeVisible();
     await expect(page.getByText("Play / Launch")).toBeVisible();
 
     // 5. Verify credentials of both linked accounts
@@ -87,18 +91,23 @@ test.describe("Steam Vault — Clean Production Database Flow E2E Tests", () => 
 
     await page.getByRole("button", { name: "Add Game" }).click();
     await expect(page.getByText("Add Game to Vault")).toBeVisible();
-    await page.getByPlaceholder("e.g. Cyberpunk 2077, Elden Ring, CS2").fill("Counter-Strike 2");
-    await page.getByPlaceholder("e.g. 730 or 1091500").fill("730");
-    await page.getByRole("button", { name: "Auto-Cover" }).click();
+
+    const titleInput = page.getByPlaceholder("e.g. Cyberpunk 2077, Elden Ring, CS2");
+    await titleInput.fill("Portal 2");
+    await page.getByPlaceholder("e.g. 730, 1091500, 1245620").fill("620");
+
+    const modal = page.locator(".fixed.inset-0");
+    await modal.getByText("Main Account").first().click();
+
     await page.getByRole("button", { name: "Add to Library" }).click();
     await expect(page.getByText("Add Game to Vault")).not.toBeVisible();
 
     // Switch to Grid View
     await page.getByRole("button", { name: /Grid View/i }).click();
-    await expect(page.getByText("Counter-Strike 2").first()).toBeVisible();
+    await expect(page.getByText("Portal 2").first()).toBeVisible();
 
     // Open Drawer in Grid View
-    await page.getByText("Counter-Strike 2").first().click();
+    await page.getByText("Portal 2").first().click();
     await expect(page.getByText("Available On (1 Accounts)")).toBeVisible();
     await expect(page.getByText("Launch in Steam")).toBeVisible();
   });

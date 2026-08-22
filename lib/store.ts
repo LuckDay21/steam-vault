@@ -12,6 +12,17 @@ const LOCAL_STORAGE_ACCOUNTS = "steam_vault_accounts";
 const LOCAL_STORAGE_GAMES = "steam_vault_games";
 const EVENT_NAME = "steam-vault-storage";
 
+// Helper to remove undefined keys which Firebase RTDB disallows
+function sanitizeForFirebase<T extends Record<string, unknown>>(data: T): Partial<T> {
+  const clean: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(data)) {
+    if (val !== undefined) {
+      clean[key] = val;
+    }
+  }
+  return clean as Partial<T>;
+}
+
 // Helpers for Local Storage Fallback & Optimistic Cache
 function getLocalAccounts(): SteamAccount[] {
   if (typeof window === "undefined") return [];
@@ -77,7 +88,7 @@ export function subscribeAccounts(callback: (accounts: SteamAccount[]) => void) 
           const local = getLocalAccounts();
           if (local.length > 0) {
             local.forEach((acc) => {
-              set(ref(db!, `accounts/${acc.id}`), acc).catch(() => {});
+              set(ref(db!, `accounts/${acc.id}`), sanitizeForFirebase(acc as unknown as Record<string, unknown>)).catch(() => {});
             });
             callback(local);
           } else {
@@ -121,7 +132,7 @@ export async function saveAccount(account: Omit<SteamAccount, "id" | "createdAt"
   // 2. Sync to Firebase Realtime Database
   if (db && isFirebaseConfigured) {
     try {
-      await set(ref(db, `accounts/${accountId}`), record);
+      await set(ref(db, `accounts/${accountId}`), sanitizeForFirebase(record as unknown as Record<string, unknown>));
     } catch (error) {
       console.error("Firebase Realtime Database saveAccount error:", error);
     }
@@ -195,7 +206,7 @@ export function subscribeGames(callback: (games: SteamGame[]) => void) {
           const local = getLocalGames();
           if (local.length > 0) {
             local.forEach((g) => {
-              set(ref(db!, `games/${g.id}`), g).catch(() => {});
+              set(ref(db!, `games/${g.id}`), sanitizeForFirebase(g as unknown as Record<string, unknown>)).catch(() => {});
             });
             callback(local);
           } else {
@@ -239,7 +250,7 @@ export async function saveGame(game: Omit<SteamGame, "id" | "createdAt"> & { id?
   // 2. Sync to Firebase Realtime Database
   if (db && isFirebaseConfigured) {
     try {
-      await set(ref(db, `games/${gameId}`), record);
+      await set(ref(db, `games/${gameId}`), sanitizeForFirebase(record as unknown as Record<string, unknown>));
     } catch (error) {
       console.error("Firebase Realtime Database saveGame error:", error);
     }

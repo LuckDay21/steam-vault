@@ -2,8 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { SteamAccount, SteamGame } from "@/types";
-import { X, Sparkles, Image as ImageIcon, Layers, Check, Gamepad2 } from "lucide-react";
-import { getSteamBannerUrl, getSteamHeroUrl, getSteamPosterUrl } from "@/lib/utils";
+import {
+  X,
+  Sparkles,
+  Image as ImageIcon,
+  Check,
+  Gamepad2,
+  Loader2,
+} from "lucide-react";
+import { getSteamBannerUrl, getSteamPosterUrl } from "@/lib/utils";
 
 interface GameModalProps {
   isOpen: boolean;
@@ -28,6 +35,8 @@ export function GameModal({
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [previewError, setPreviewError] = useState(false);
+  const [isLoadingSteam, setIsLoadingSteam] = useState(false);
+  const [fetchSuccessMessage, setFetchSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialGame) {
@@ -49,17 +58,50 @@ export function GameModal({
       setNotes("");
     }
     setPreviewError(false);
+    setIsLoadingSteam(false);
+    setFetchSuccessMessage(null);
   }, [initialGame, isOpen, accounts]);
 
   if (!isOpen) return null;
 
-  const handleFetchSteamAssets = () => {
+  const handleFetchSteamAssets = async () => {
     const trimmedId = steamAppId.trim();
     if (!trimmedId) return;
 
-    setCoverUrl(getSteamPosterUrl(trimmedId));
-    setBannerUrl(getSteamBannerUrl(trimmedId));
-    setPreviewError(false);
+    setIsLoadingSteam(true);
+    setFetchSuccessMessage(null);
+
+    try {
+      const res = await fetch(`/api/steam/${trimmedId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title && !title.trim()) {
+          setTitle(data.title);
+        }
+        if (Array.isArray(data.genres) && data.genres.length > 0) {
+          setGenresInput(data.genres.join(", "));
+        }
+        if (data.coverUrl) {
+          setCoverUrl(data.coverUrl);
+        }
+        if (data.bannerUrl) {
+          setBannerUrl(data.bannerUrl);
+        }
+        setFetchSuccessMessage("Steam info & tags loaded!");
+        setTimeout(() => setFetchSuccessMessage(null), 3000);
+      } else {
+        // Fallback to static URLs
+        setCoverUrl(getSteamPosterUrl(trimmedId));
+        setBannerUrl(getSteamBannerUrl(trimmedId));
+      }
+    } catch {
+      // Fallback on network error
+      setCoverUrl(getSteamPosterUrl(trimmedId));
+      setBannerUrl(getSteamBannerUrl(trimmedId));
+    } finally {
+      setPreviewError(false);
+      setIsLoadingSteam(false);
+    }
   };
 
   const toggleAccount = (accId: string) => {
@@ -117,7 +159,7 @@ export function GameModal({
                 {initialGame ? "Edit Game" : "Add Game to Vault"}
               </h3>
               <p className="text-xs text-slate-400">
-                Manually record game title, Steam AppID, and account ownership
+                Auto-fetch tags, title & covers via Steam AppID or enter manually
               </p>
             </div>
           </div>
@@ -160,6 +202,49 @@ export function GameModal({
 
             {/* Right: Inputs */}
             <div className="md:col-span-2 space-y-4">
+              {/* Steam App ID + Auto Fetch Button */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
+                  Steam App ID
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={steamAppId}
+                    onChange={(e) => setSteamAppId(e.target.value)}
+                    placeholder="e.g. 730, 1091500, 1245620"
+                    className="flex-1 px-3.5 py-2 rounded-xl bg-[#141f2d] border border-slate-700 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchSteamAssets}
+                    disabled={!steamAppId.trim() || isLoadingSteam}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:hover:bg-sky-600 text-white transition-all shadow-sm cursor-pointer shrink-0"
+                  >
+                    {isLoadingSteam ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Fetching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-sky-200" />
+                        <span>Auto-Fill Info</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {fetchSuccessMessage && (
+                  <p className="text-[11px] text-emerald-400 font-medium mt-1 flex items-center gap-1 animate-in fade-in">
+                    <Check className="w-3 h-3" />
+                    <span>{fetchSuccessMessage}</span>
+                  </p>
+                )}
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Click &apos;Auto-Fill Info&apos; to automatically load game title, genre tags, and cover images from Steam.
+                </p>
+              </div>
+
               {/* Game Title */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
@@ -175,39 +260,25 @@ export function GameModal({
                 />
               </div>
 
-              {/* Steam App ID + Auto Fetch Button */}
+              {/* Genres / Tags */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">
-                  Steam App ID (Optional)
+                  Game Tags / Genres
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={steamAppId}
-                    onChange={(e) => setSteamAppId(e.target.value)}
-                    placeholder="e.g. 730 or 1091500"
-                    className="flex-1 px-3.5 py-2 rounded-xl bg-[#141f2d] border border-slate-700 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500 font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleFetchSteamAssets}
-                    disabled={!steamAppId.trim()}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:hover:bg-sky-600 text-white transition-all shadow-sm cursor-pointer"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Auto-Cover</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Inputting Steam AppID enables Steam Client direct launch & auto poster images.
-                </p>
+                <input
+                  type="text"
+                  value={genresInput}
+                  onChange={(e) => setGenresInput(e.target.value)}
+                  placeholder="Auto-filled via AppID, e.g. Action, RPG, Open World"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#141f2d] border border-slate-700 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
+                />
               </div>
 
               {/* Custom Cover & Banner URLs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    Custom Cover URL (Poster)
+                    Poster Cover URL
                   </label>
                   <input
                     type="url"
@@ -222,7 +293,7 @@ export function GameModal({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    Custom Banner URL (Hero)
+                    Hero Banner URL
                   </label>
                   <input
                     type="url"
@@ -232,20 +303,6 @@ export function GameModal({
                     className="w-full px-3 py-1.5 rounded-lg bg-[#141f2d] border border-slate-700 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
                   />
                 </div>
-              </div>
-
-              {/* Genres */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  Genres (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  value={genresInput}
-                  onChange={(e) => setGenresInput(e.target.value)}
-                  placeholder="Action, RPG, Open World, FPS"
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#141f2d] border border-slate-700 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
-                />
               </div>
             </div>
           </div>
@@ -263,7 +320,7 @@ export function GameModal({
 
             {accounts.length === 0 ? (
               <p className="text-xs text-amber-400 italic">
-                No accounts created yet. Please create Steam accounts first in &quot;Manage Accounts&quot;.
+                No accounts created yet. Please create Steam accounts first in &quot;Accounts Hub&quot;.
               </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
