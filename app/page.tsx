@@ -8,6 +8,8 @@ import { SteamDeckGrid } from "@/components/SteamDeckGrid";
 import { GameDrawer } from "@/components/GameDrawer";
 import { GameModal } from "@/components/GameModal";
 import { AccountManagerModal } from "@/components/AccountManagerModal";
+import { WelcomeHero } from "@/components/WelcomeHero";
+import { useAuth } from "@/context/AuthContext";
 import {
   subscribeAccounts,
   subscribeGames,
@@ -17,8 +19,19 @@ import {
   deleteGame,
 } from "@/lib/store";
 import { SteamAccount, SteamGame, FilterState } from "@/types";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
+  const {
+    user,
+    loading: isAuthLoading,
+    isGuestMode,
+    activeUserId,
+    signInWithGoogle,
+    signOutUser,
+    enableGuestMode,
+  } = useAuth();
+
   const [accounts, setAccounts] = useState<SteamAccount[]>([]);
   const [games, setGames] = useState<SteamGame[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
@@ -39,15 +52,16 @@ export default function Home() {
     sortBy: "title-asc",
   });
 
-  // Subscribe to real-time accounts & games
+  // Subscribe to real-time accounts & games scoped by activeUserId
   useEffect(() => {
-    const unsubAccounts = subscribeAccounts((updatedAccounts) => {
+    if (!activeUserId) return;
+
+    const unsubAccounts = subscribeAccounts(activeUserId, (updatedAccounts) => {
       setAccounts(updatedAccounts);
     });
 
-    const unsubGames = subscribeGames((updatedGames) => {
+    const unsubGames = subscribeGames(activeUserId, (updatedGames) => {
       setGames(updatedGames);
-      // Auto select first game if none selected
       setSelectedGameId((prev) => {
         if (prev && updatedGames.some((g) => g.id === prev)) return prev;
         return updatedGames.length > 0 ? updatedGames[0].id : null;
@@ -58,14 +72,14 @@ export default function Home() {
       unsubAccounts();
       unsubGames();
     };
-  }, []);
+  }, [activeUserId]);
 
   // Compute distinct genres
   const allGenres = useMemo(() => {
     const set = new Set<string>();
     games.forEach((g) => {
-      g.genres?.forEach((genre) => {
-        if (genre.trim()) set.add(genre.trim());
+      (g.genres || []).forEach((genre) => {
+        if (genre?.trim()) set.add(genre.trim());
       });
     });
     return Array.from(set).sort();
@@ -78,9 +92,9 @@ export default function Home() {
         // Search filter
         if (filters.search.trim()) {
           const q = filters.search.toLowerCase().trim();
-          const matchTitle = game.title.toLowerCase().includes(q);
+          const matchTitle = game.title?.toLowerCase().includes(q);
           const matchAppId = game.steamAppId?.includes(q);
-          const matchGenre = game.genres?.some((g) =>
+          const matchGenre = (game.genres || []).some((g) =>
             g.toLowerCase().includes(q)
           );
           if (!matchTitle && !matchAppId && !matchGenre) return false;
@@ -133,14 +147,14 @@ export default function Home() {
   const handleSaveGame = async (
     gameData: Omit<SteamGame, "id" | "createdAt"> & { id?: string }
   ) => {
-    const saved = await saveGame(gameData);
+    const saved = await saveGame(activeUserId, gameData);
     if (saved?.id) {
       setSelectedGameId(saved.id);
     }
   };
 
   const handleDeleteGame = async (gameId: string) => {
-    await deleteGame(gameId);
+    await deleteGame(activeUserId, gameId);
     if (selectedGameId === gameId) {
       const remaining = games.filter((g) => g.id !== gameId);
       setSelectedGameId(remaining.length > 0 ? remaining[0].id : null);
@@ -153,11 +167,11 @@ export default function Home() {
   const handleSaveAccount = async (
     accountData: Omit<SteamAccount, "id" | "createdAt"> & { id?: string }
   ) => {
-    await saveAccount(accountData);
+    await saveAccount(activeUserId, accountData);
   };
 
   const handleDeleteAccount = async (accountId: string) => {
-    await deleteAccount(accountId);
+    await deleteAccount(activeUserId, accountId);
   };
 
   const resetFilters = () => {
@@ -170,20 +184,45 @@ export default function Home() {
     });
   };
 
+  // Auth Loading Screen
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#171a21] text-[#66c0f4]">
+        <Loader2 className="w-8 h-8 animate-spin mb-3" />
+        <span className="text-xs font-bold tracking-widest text-[#8f98a0] uppercase">
+          Loading Steam Vault...
+        </span>
+      </div>
+    );
+  }
+
+  const showVaultUI = Boolean(user || isGuestMode);
+
   return (
     <div className="min-h-screen flex flex-col bg-[#171a21] text-[#c6d4df] font-sans antialiased overflow-hidden">
       {/* Top Steam Native Header */}
       <SteamHeader
+        user={user}
+        isGuestMode={isGuestMode}
         accountsCount={accounts.length}
         gamesCount={games.length}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onOpenAddGame={handleOpenAddGame}
         onOpenAccounts={() => setIsAccountModalOpen(true)}
+        onSignInWithGoogle={signInWithGoogle}
+        onSignOut={signOutUser}
       />
 
-      {/* Main Content Layout */}
-      {viewMode === "desktop" ? (
+      {/* Main Content Area */}
+      {!showVaultUI ? (
+        /* Public Welcome Landing when not signed in */
+        <WelcomeHero
+          onSignInWithGoogle={signInWithGoogle}
+          onContinueAsGuest={enableGuestMode}
+        />
+      ) : viewMode === "desktop" ? (
+        /* Desktop Client View (Sidebar + Main Hero Stage) */
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* Left Steam Library Sidebar */}
           <SteamSidebar

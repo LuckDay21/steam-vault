@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
+import { getAuth, Auth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,14 +21,17 @@ export const isFirebaseConfigured = Boolean(
 
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
+let auth: Auth | null = null;
+const googleProvider = new GoogleAuthProvider();
 
 if (typeof window !== "undefined" && isFirebaseConfigured) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     db = getDatabase(app);
+    auth = getAuth(app);
   } catch (error) {
-    console.warn("Firebase Realtime Database initialization error:", error);
+    console.warn("Firebase initialization error:", error);
   }
 }
 
-export { app, db };
+export { app, db, auth, googleProvider };
