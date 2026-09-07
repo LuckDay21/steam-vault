@@ -1,15 +1,20 @@
 "use client";
 
 import React from "react";
-import { Plus, Users, LayoutGrid, SplitSquareVertical, LogOut, LogIn, UserCheck } from "lucide-react";
+import { Plus, Users, LayoutGrid, SplitSquareVertical, LogOut, DollarSign, Wallet } from "lucide-react";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import { User } from "firebase/auth";
+import { CurrencyCode } from "@/types";
+import { formatCurrency } from "@/lib/currency";
 
 interface SteamHeaderProps {
   user: User | null;
   isGuestMode: boolean;
   accountsCount: number;
   gamesCount: number;
+  totalValuation: number;
+  preferredCurrency: CurrencyCode;
+  onToggleCurrency: () => void;
   viewMode: "desktop" | "grid";
   onViewModeChange: (mode: "desktop" | "grid") => void;
   onOpenAddGame: () => void;
@@ -23,6 +28,9 @@ export function SteamHeader({
   isGuestMode,
   accountsCount,
   gamesCount,
+  totalValuation,
+  preferredCurrency,
+  onToggleCurrency,
   viewMode,
   onViewModeChange,
   onOpenAddGame,
@@ -67,7 +75,25 @@ export function SteamHeader({
         </div>
 
         {/* Right Tools & Profile Info */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Total Library Valuation Badge & Currency Switcher */}
+          {gamesCount > 0 && (
+            <button
+              onClick={onToggleCurrency}
+              title={`Total value of your game collection. Click to switch currency (${preferredCurrency === "IDR" ? "Switch to USD" : "Switch to IDR"})`}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#101b2b] hover:bg-[#16273e] text-[#a4d007] border border-[#2a475e]/70 transition-all cursor-pointer group"
+            >
+              <Wallet className="w-3.5 h-3.5 text-[#a4d007] group-hover:scale-110 transition-transform" />
+              <div className="flex items-center gap-1 text-[11px] font-bold">
+                <span className="text-slate-400 font-normal hidden lg:inline">Valuation:</span>
+                <span>{formatCurrency(totalValuation, preferredCurrency)}</span>
+                <span className="text-[10px] text-sky-400 font-mono underline ml-0.5">
+                  {preferredCurrency}
+                </span>
+              </div>
+            </button>
+          )}
+
           {/* View Mode Switcher (Desktop Client vs Deck Grid) */}
           <div className="flex items-center bg-[#101822] rounded-md p-0.5 border border-[#2a475e]/40">
             <button

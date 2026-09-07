@@ -18,7 +18,8 @@ import {
   saveGame,
   deleteGame,
 } from "@/lib/store";
-import { SteamAccount, SteamGame, FilterState } from "@/types";
+import { CurrencyCode, SteamAccount, SteamGame, FilterState } from "@/types";
+import { calculateTotalValuation, convertToCurrency, getGameTotalPrice } from "@/lib/currency";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
@@ -36,6 +37,7 @@ export default function Home() {
   const [games, setGames] = useState<SteamGame[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"desktop" | "grid">("desktop");
+  const [preferredCurrency, setPreferredCurrency] = useState<CurrencyCode>("IDR");
 
   // Modals state
   const [isGameModalOpen, setIsGameModalOpen] = useState(false);
@@ -123,8 +125,31 @@ export default function Home() {
 
         return true;
       })
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [games, filters]);
+      .sort((a, b) => {
+        switch (filters.sortBy) {
+          case "title-asc":
+            return a.title.localeCompare(b.title);
+          case "title-desc":
+            return b.title.localeCompare(a.title);
+          case "newest":
+            return (b.createdAt || 0) - (a.createdAt || 0);
+          case "accounts-desc":
+            return (b.accountIds || []).length - (a.accountIds || []).length;
+          case "price-desc": {
+            const priceA = convertToCurrency(getGameTotalPrice(a).total, a.currency || "IDR", preferredCurrency);
+            const priceB = convertToCurrency(getGameTotalPrice(b).total, b.currency || "IDR", preferredCurrency);
+            return priceB - priceA;
+          }
+          case "price-asc": {
+            const priceA = convertToCurrency(getGameTotalPrice(a).total, a.currency || "IDR", preferredCurrency);
+            const priceB = convertToCurrency(getGameTotalPrice(b).total, b.currency || "IDR", preferredCurrency);
+            return priceA - priceB;
+          }
+          default:
+            return 0;
+        }
+      });
+  }, [games, filters, preferredCurrency]);
 
   // Active game in hero stage
   const selectedGame = useMemo(() => {
@@ -133,6 +158,19 @@ export default function Home() {
       (filteredGames.length > 0 ? filteredGames[0] : null)
     );
   }, [filteredGames, selectedGameId]);
+
+  // Total valuations
+  const allGamesValuation = useMemo(() => {
+    return calculateTotalValuation(games, preferredCurrency);
+  }, [games, preferredCurrency]);
+
+  const filteredValuation = useMemo(() => {
+    return calculateTotalValuation(filteredGames, preferredCurrency);
+  }, [filteredGames, preferredCurrency]);
+
+  const togglePreferredCurrency = () => {
+    setPreferredCurrency((prev) => (prev === "IDR" ? "USD" : "IDR"));
+  };
 
   const handleOpenAddGame = () => {
     setEditingGame(null);
@@ -206,6 +244,9 @@ export default function Home() {
         isGuestMode={isGuestMode}
         accountsCount={accounts.length}
         gamesCount={games.length}
+        totalValuation={allGamesValuation}
+        preferredCurrency={preferredCurrency}
+        onToggleCurrency={togglePreferredCurrency}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onOpenAddGame={handleOpenAddGame}
@@ -232,6 +273,8 @@ export default function Home() {
             genres={allGenres}
             filter={filters}
             selectedGameId={selectedGame?.id || null}
+            totalFilteredValuation={filteredValuation}
+            preferredCurrency={preferredCurrency}
             onSelectGame={(g) => setSelectedGameId(g.id)}
             onFilterChange={(newF) =>
               setFilters((prev) => ({ ...prev, ...newF }))

@@ -11,13 +11,14 @@ import {
   Play,
   Edit2,
   Trash2,
-  Layers,
   KeyRound,
   UserCheck,
-  ExternalLink,
   Info,
+  DollarSign,
+  Package,
 } from "lucide-react";
-import { getSteamBannerUrl, getSteamHeroUrl, getSteamPosterUrl } from "@/lib/utils";
+import { getSteamHeroUrl } from "@/lib/utils";
+import { formatCurrency, getGameTotalPrice } from "@/lib/currency";
 
 interface GameDrawerProps {
   game: SteamGame | null;
@@ -52,6 +53,9 @@ export function GameDrawer({
   const ownerAccounts = accounts.filter((acc) =>
     (game.accountIds || []).includes(acc.id)
   );
+
+  const { total, base, dlc, currency, isFree } = getGameTotalPrice(game);
+  const selectedDlcs = (game.dlcItems || []).filter((d) => d.selected);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -92,7 +96,7 @@ export function GameDrawer({
               className="w-full h-full object-cover opacity-60"
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#142333] to-[#0c141d]" />
+            <div className="w-full h-full bg-gradient-to-br from-[#142334] to-[#0c141d]" />
           )}
 
           {/* Gradients */}
@@ -109,11 +113,31 @@ export function GameDrawer({
 
           {/* Title and Meta in Hero */}
           <div className="absolute bottom-4 left-6 right-6">
-            {game.steamAppId && (
-              <span className="inline-block text-xs font-mono font-semibold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30 mb-2">
-                Steam AppID: {game.steamAppId}
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {game.steamAppId && (
+                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  AppID: {game.steamAppId}
+                </span>
+              )}
+
+              {/* Price & DLC badges */}
+              {(game.price !== undefined || game.isFree) && (
+                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />
+                  <span>{isFree ? "Free" : formatCurrency(base, currency)}</span>
+                </span>
+              )}
+
+              {game.includesDlc && (
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 flex items-center gap-1">
+                  <Package className="w-3 h-3 text-sky-400" />
+                  <span>
+                    {selectedDlcs.length > 0 ? `+ ${selectedDlcs.length} DLCs` : "+ DLC"} ({formatCurrency(total, currency)})
+                  </span>
+                </span>
+              )}
+            </div>
+
             <h2 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">
               {game.title}
             </h2>
@@ -139,7 +163,7 @@ export function GameDrawer({
           {game.steamAppId && (
             <a
               href={`steam://rungameid/${game.steamAppId}`}
-              className="flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all hover:scale-[1.01] active:scale-98 cursor-pointer"
+              className="flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#5c7e10] to-[#759c16] hover:from-[#6b9413] hover:to-[#8ab71a] text-white font-bold text-sm shadow-lg shadow-black/40 transition-all hover:scale-[1.01] active:scale-98 cursor-pointer uppercase tracking-wider"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>Launch in Steam</span>
@@ -271,6 +295,37 @@ export function GameDrawer({
               </div>
             )}
           </div>
+
+          {/* Owned DLCs List if user owns any DLC */}
+          {selectedDlcs.length > 0 && (
+            <div className="p-4 rounded-lg bg-[#131e2b] border border-slate-700/60 space-y-2.5 shadow-md">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Owned DLCs & Expansions ({selectedDlcs.length})</span>
+                </h3>
+                <span className="text-xs font-mono font-bold text-emerald-400">
+                  Total DLC: {formatCurrency(dlc, currency)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {selectedDlcs.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-2 rounded bg-[#0b1119] border border-slate-800 text-xs"
+                  >
+                    <span className="text-slate-200 truncate font-medium mr-2">
+                      {item.name}
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-emerald-400 shrink-0">
+                      {item.price > 0 ? formatCurrency(item.price, currency) : "Free"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Game Notes */}
           {game.notes && (

@@ -17,8 +17,11 @@ import {
   Gamepad2,
   Plus,
   Users,
+  DollarSign,
+  Package,
 } from "lucide-react";
 import { getSteamHeroUrl, getSteamPosterUrl } from "@/lib/utils";
+import { formatCurrency, getGameTotalPrice } from "@/lib/currency";
 
 interface SteamHeroStageProps {
   game: SteamGame | null;
@@ -92,6 +95,9 @@ export function SteamHeroStage({
     game.coverUrl ||
     (game.steamAppId ? getSteamPosterUrl(game.steamAppId) : null);
 
+  const { total, base, dlc, currency, isFree } = getGameTotalPrice(game);
+  const selectedDlcs = (game.dlcItems || []).filter((d) => d.selected);
+
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
@@ -135,19 +141,41 @@ export function SteamHeroStage({
 
             {/* Game Title & Metadata */}
             <div className="space-y-1.5">
-              {game.steamAppId && (
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {game.steamAppId && (
                   <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-[#101822]/80 text-[#66c0f4] border border-[#2a475e]/80">
                     AppID: {game.steamAppId}
                   </span>
-                  {ownerAccounts.length > 1 && (
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
-                      <Layers className="w-3 h-3" />
-                      <span>Owned on {ownerAccounts.length} Accounts</span>
+                )}
+
+                {/* Price Tag Badge */}
+                {(game.price !== undefined || game.isFree) && (
+                  <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />
+                    <span>{isFree ? "Free to Play" : formatCurrency(base, currency)}</span>
+                  </span>
+                )}
+
+                {/* DLC Tag Badge */}
+                {game.includesDlc && (
+                  <span
+                    className="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 flex items-center gap-1"
+                    title={`Includes DLCs (+${formatCurrency(dlc, currency)}) — Total: ${formatCurrency(total, currency)}`}
+                  >
+                    <Package className="w-3 h-3 text-sky-400" />
+                    <span>
+                      {selectedDlcs.length > 0 ? `+ ${selectedDlcs.length} DLCs` : "+ DLCs"} ({formatCurrency(total, currency)})
                     </span>
-                  )}
-                </div>
-              )}
+                  </span>
+                )}
+
+                {ownerAccounts.length > 1 && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                    <Layers className="w-3 h-3" />
+                    <span>Owned on {ownerAccounts.length} Accounts</span>
+                  </span>
+                )}
+              </div>
 
               <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight drop-shadow-md">
                 {game.title}
@@ -342,6 +370,37 @@ export function SteamHeroStage({
             </div>
           )}
         </div>
+
+        {/* Owned DLCs List if user owns any DLC */}
+        {selectedDlcs.length > 0 && (
+          <div className="p-4 rounded-lg bg-[#1b2838] border border-[#2a475e] space-y-2.5">
+            <div className="flex items-center justify-between border-b border-[#212f42] pb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5 text-sky-400" />
+                <span>Owned DLCs & Expansions ({selectedDlcs.length})</span>
+              </h3>
+              <span className="text-xs font-mono font-bold text-emerald-400">
+                Total DLC Value: {formatCurrency(dlc, currency)}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {selectedDlcs.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2 rounded bg-[#121c27] border border-slate-800 text-xs"
+                >
+                  <span className="text-slate-200 truncate font-medium mr-2">
+                    {item.name}
+                  </span>
+                  <span className="font-mono text-[11px] font-bold text-emerald-400 shrink-0">
+                    {item.price > 0 ? formatCurrency(item.price, currency) : "Free"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Custom Game Notes / Extras */}
         {game.notes && (

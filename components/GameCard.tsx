@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { SteamAccount, SteamGame } from "@/types";
-import { Gamepad2, Users, Layers, ExternalLink } from "lucide-react";
+import { Gamepad2, Layers, Package } from "lucide-react";
 import { getSteamPosterUrl } from "@/lib/utils";
+import { formatCurrency, getGameTotalPrice } from "@/lib/currency";
 
 interface GameCardProps {
   game: SteamGame;
@@ -23,6 +24,7 @@ export function GameCard({ game, accounts, onClick }: GameCardProps) {
     game.coverUrl || (game.steamAppId ? getSteamPosterUrl(game.steamAppId) : null);
 
   const isDuplicate = ownerAccounts.length > 1;
+  const { total, currency, isFree } = getGameTotalPrice(game);
 
   return (
     <div
@@ -57,19 +59,30 @@ export function GameCard({ game, accounts, onClick }: GameCardProps) {
         )}
 
         {/* Top Badges */}
-        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none gap-1">
           {isDuplicate && (
             <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-500/90 text-black shadow-md backdrop-blur-xs">
               <Layers className="w-3 h-3" />
-              <span>{ownerAccounts.length} Accounts</span>
+              <span>{ownerAccounts.length}x</span>
             </span>
           )}
 
-          {game.steamAppId && (
-            <span className="ml-auto text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-black/70 text-slate-300 backdrop-blur-xs border border-white/10">
-              #{game.steamAppId}
-            </span>
-          )}
+          <div className="ml-auto flex items-center gap-1">
+            {game.includesDlc && (
+              <span
+                title="Includes All DLCs"
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-600/90 text-white backdrop-blur-xs flex items-center gap-0.5"
+              >
+                <Package className="w-2.5 h-2.5" />
+                <span>+DLC</span>
+              </span>
+            )}
+            {game.steamAppId && (
+              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-black/70 text-slate-300 backdrop-blur-xs border border-white/10">
+                #{game.steamAppId}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Gradient shadow overlay */}
@@ -79,16 +92,24 @@ export function GameCard({ game, accounts, onClick }: GameCardProps) {
       {/* Card Info */}
       <div className="p-3.5 flex flex-col flex-1 justify-between gap-2.5 bg-[#131b26]">
         <div>
-          <h3 className="text-sm font-bold text-slate-100 group-hover:text-sky-300 transition-colors line-clamp-1">
-            {game.title}
-          </h3>
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="text-sm font-bold text-slate-100 group-hover:text-sky-300 transition-colors line-clamp-1">
+              {game.title}
+            </h3>
+          </div>
 
-          {/* Genres */}
-          {game.genres && game.genres.length > 0 && (
-            <p className="text-[11px] text-slate-400 truncate mt-0.5">
-              {game.genres.slice(0, 3).join(" • ")}
+          {/* Genres & Price Row */}
+          <div className="flex items-center justify-between gap-1 mt-0.5">
+            <p className="text-[11px] text-slate-400 truncate max-w-[120px]">
+              {game.genres && game.genres.length > 0 ? game.genres.slice(0, 2).join(" • ") : "Game"}
             </p>
-          )}
+
+            {(game.price !== undefined || game.isFree) && (
+              <span className="text-[11px] font-mono font-bold text-emerald-400 shrink-0">
+                {isFree ? "Free" : formatCurrency(total, currency)}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Account Badges */}
@@ -99,7 +120,7 @@ export function GameCard({ game, accounts, onClick }: GameCardProps) {
                 <span
                   key={acc.id}
                   title={acc.label}
-                  className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#1e2d3f] text-slate-200 border border-slate-700/60 truncate max-w-[120px]"
+                  className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#1e2d3f] text-slate-200 border border-slate-700/60 truncate max-w-[100px]"
                 >
                   <span
                     className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -110,7 +131,7 @@ export function GameCard({ game, accounts, onClick }: GameCardProps) {
               ))
             ) : (
               <span className="text-[11px] text-slate-500 italic">
-                No accounts assigned
+                No accounts
               </span>
             )}
           </div>

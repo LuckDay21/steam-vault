@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, Layers, X, Filter, Gamepad2 } from "lucide-react";
-import { SteamAccount, SteamGame, FilterState } from "@/types";
+import { Search, Layers, X, Filter, Gamepad2, Wallet } from "lucide-react";
+import { CurrencyCode, SteamAccount, SteamGame, FilterState } from "@/types";
 import { getSteamPosterUrl } from "@/lib/utils";
+import { formatCurrency, getGameTotalPrice } from "@/lib/currency";
 
 interface SteamSidebarProps {
   games: SteamGame[];
@@ -12,6 +13,8 @@ interface SteamSidebarProps {
   genres: string[];
   filter: FilterState;
   selectedGameId: string | null;
+  totalFilteredValuation: number;
+  preferredCurrency: CurrencyCode;
   onSelectGame: (game: SteamGame) => void;
   onFilterChange: (newFilter: Partial<FilterState>) => void;
 }
@@ -23,6 +26,8 @@ export function SteamSidebar({
   genres,
   filter,
   selectedGameId,
+  totalFilteredValuation,
+  preferredCurrency,
   onSelectGame,
   onFilterChange,
 }: SteamSidebarProps) {
@@ -144,6 +149,8 @@ export function SteamSidebar({
               game.coverUrl ||
               (game.steamAppId ? getSteamPosterUrl(game.steamAppId) : null);
 
+            const { total, currency: gameCurr, isFree } = getGameTotalPrice(game);
+
             return (
               <div
                 key={game.id}
@@ -170,7 +177,7 @@ export function SteamSidebar({
                   )}
                 </div>
 
-                {/* Game Title & Account dots */}
+                {/* Game Title & Metadata */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs font-semibold truncate">
@@ -183,19 +190,28 @@ export function SteamSidebar({
                     )}
                   </div>
 
-                  {/* Account ownership tags */}
-                  <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
-                    {ownerAccounts.map((acc) => (
-                      <span
-                        key={acc.id}
-                        title={acc.label}
-                        className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
-                        style={{ backgroundColor: acc.colorTag || "#38bdf8" }}
-                      />
-                    ))}
-                    <span className="text-[10px] text-[#8f98a0] truncate ml-0.5">
-                      {ownerAccounts.map((a) => a.label).join(", ") || "No accounts"}
-                    </span>
+                  {/* Account ownership tags & Price */}
+                  <div className="flex items-center justify-between gap-1 mt-0.5">
+                    <div className="flex items-center gap-1 overflow-hidden">
+                      {ownerAccounts.map((acc) => (
+                        <span
+                          key={acc.id}
+                          title={acc.label}
+                          className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ backgroundColor: acc.colorTag || "#38bdf8" }}
+                        />
+                      ))}
+                      <span className="text-[10px] text-[#8f98a0] truncate ml-0.5">
+                        {ownerAccounts.map((a) => a.label).join(", ") || "No accounts"}
+                      </span>
+                    </div>
+
+                    {/* Price Tag */}
+                    {(game.price !== undefined || game.isFree) && (
+                      <span className="text-[10px] font-mono text-emerald-400 shrink-0 font-medium">
+                        {isFree ? "Free" : formatCurrency(total, gameCurr)}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -204,10 +220,13 @@ export function SteamSidebar({
         )}
       </div>
 
-      {/* Footer info */}
+      {/* Footer info: Count & Valuation */}
       <div className="px-3 py-2 bg-[#0e141c] border-t border-[#212f42] text-[10px] text-[#8f98a0] flex items-center justify-between">
-        <span>Total Library: {allGamesCount}</span>
-        <span className="text-[#66c0f4]">Steam Vault</span>
+        <span>Library: {allGamesCount}</span>
+        <div className="flex items-center gap-1 font-semibold text-emerald-400">
+          <Wallet className="w-3 h-3 text-[#a4d007]" />
+          <span>{formatCurrency(totalFilteredValuation, preferredCurrency)}</span>
+        </div>
       </div>
     </aside>
   );
