@@ -8,6 +8,16 @@ export interface SteamAccount {
   createdAt: number;
 }
 
+export type CurrencyCode = "IDR" | "USD";
+
+export interface SteamGameDlcItem {
+  id: number;
+  name: string;
+  price: number;
+  headerImage?: string;
+  selected: boolean;
+}
+
 export interface SteamGame {
   id: string;
   title: string;
@@ -18,9 +28,17 @@ export interface SteamGame {
   accountIds: string[];
   notes?: string;
   createdAt: number;
+
+  // Pricing & DLC fields
+  price?: number;            // Base game price (e.g. 759000 or 59.99)
+  currency?: CurrencyCode;   // "IDR" | "USD"
+  isFree?: boolean;          // true if free-to-play
+  includesDlc?: boolean;     // true if user owns DLCs
+  dlcPrice?: number;         // Additional amount for DLCs
+  dlcItems?: SteamGameDlcItem[]; // Individual DLC items with selection state
 }
 
-export type SortOption = "title-asc" | "title-desc" | "newest" | "accounts-desc";
+export type SortOption = "title-asc" | "title-desc" | "newest" | "accounts-desc" | "price-desc" | "price-asc";
 
 export interface FilterState {
   search: string;

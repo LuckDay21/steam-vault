@@ -94,6 +94,8 @@ export function LibraryFilters({
               <option value="title-asc">Alphabetical (A-Z)</option>
               <option value="title-desc">Alphabetical (Z-A)</option>
               <option value="newest">Recently Added</option>
+              <option value="price-desc">Highest Price</option>
+              <option value="price-asc">Lowest Price / Free</option>
               <option value="accounts-desc">Most Accounts Owned</option>
             </select>
             <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
